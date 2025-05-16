@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kalkulator Profesional</title>
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg-gradient, linear-gradient(to bottom right, #4f33b0, #d235a5));
+      transition: background 0.5s ease;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .calculator {
+      width: 100%;
+      max-width: 480px;
+      background-color: var(--calc-bg, #fff);
+      color: var(--text-color, #000);
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+      padding: 20px;
+      position: relative;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .theme-toggler {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .theme-list {
+      position: absolute;
+      top: 40px;
+      right: 10px;
+      background: white;
+      color: black;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+      display: none;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 999;
+    }
+
+    .theme-list.active {
+      display: block;
+    }
+
+    .theme-list div {
+      padding: 8px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #ddd;
+      transition: background 0.2s;
+    }
+
+    .theme-list div:hover {
+      background-color: #eee;
+    }
+
+    .tooltip {
+      font-size: 0.8rem;
+      text-align: center;
+      color: green;
+      margin-bottom: 8px;
+    }
+
+    .display {
+      background-color: var(--display-bg, #f3f3f3);
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 1.5rem;
+      text-align: right;
+      margin-bottom: 15px;
+      min-height: 60px;
+      overflow-x: auto;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      padding: 18px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+
+    .number { background-color: #e6f7ff; }
+    .operator { background-color: #fbe4ff; }
+    .equal { background-color: #adf9e7; }
+    .clear, .backspace, .undo, .redo, .save, .load, .copy, .voice {
+      background-color: #ffd5d8;
+    }
+
+    @media (max-width: 500px) {
+      .display { font-size: 1.2rem; }
+      button { padding: 12px; font-size: 1rem; }
+    }
+  </style>
+  </head>
+
+  <body>
+    <div class="calculator" id="calculator">
+      <div class="theme-toggler" id="themeToggle">
+        <i class="fas fa-screwdriver-wrench"></i>
+      </div>
+      <div class="theme-list" id="themeList"></div>
+      <div class="tooltip" id="tooltip"></div>
+      <div class="display" id="display"></div>
+      <div class="buttons">
+        <button class="clear">C</button>
+        <button class="backspace"><i class="fas fa-backspace"></i></button>
+        <button class="undo"><i class="fas fa-undo"></i></button>
+        <button class="redo"><i class="fas fa-redo"></i></button>
+        <button class="number">7</button>
+        <button class="number">8</button>
+        <button class="number">9</button>
+        <button class="operator">/</button>
+        <button class="number">4</button>
+        <button class="number">5</button>
+        <button class="number">6</button>
+        <button class="operator">*</button>
+        <button class="number">1</button>
+        <button class="number">2</button>
+        <button class="number">3</button>
+        <button class="operator">-</button>
+        <button class="number">00</button>
+        <button class="number">0</button>
+        <button class="number">000</button>
+        <button class="operator">+</button>
+        <button class="operator">(</button>
+        <button class="number">.</button>
+        <button class="operator">)</button>
+        <button class="equal">=</button>
+        <button class="save">Save</button>
+        <button class="load">Load</button>
+        <button class="copy"><i class="fas fa-copy"></i></button>
+        <button class="voice"><i class="fas fa-microphone"></i></button>
+      </div>
+    </div>
+    <script>
+    const display = document.getElementById("display");
+    const calculator = document.getElementById("calculator");
+    const themeToggle = document.getElementById("themeToggle");
+    const tooltip = document.getElementById("tooltip");
+    const themeList = document.getElementById("themeList");
+    let memory = "", history = [], historyIndex = -1;
+
+    const themes = {
+  "Starlit Night": {
+    "--calc-bg": "#071115",
+    "--text-color": "#f8fafb",
+    "--display-bg": "#1e1e1e",
+    "--bg-gradient": "#0f2027",
+    "animation": "stars twinkling, moon moving"
+  },
+  "Morning Dew": {
+    "--calc-bg": "#ffffff",
+    "--text-color": "#000000",
+    "--display-bg": "#f3f3f3",
+    "--bg-gradient": "#e3e3e3",
+    "animation": "fog rolling, dew drops appearing"
+  },
+  "Ocean Wave": {
+    "--calc-bg": "#1b3b5f",
+    "--text-color": "#d9f0ff",
+    "--display-bg": "#28527a",
+    "--bg-gradient": "#2e5984",
+    "animation": "gentle ocean waves with bubbles drifting up"
+  },
+  "Sunset Bliss": {
+    "--calc-bg": "#fa8f6f",
+    "--text-color": "#3b1f1f",
+    "--display-bg": "#fbc7b8",
+    "--bg-gradient": "#fcb69f",
+    "animation": "slow moving pink and orange clouds, sun glow pulsing"
+  },
+  "Forest Whisper": {
+    "--calc-bg": "#2b4d25",
+    "--text-color": "#d0e8b8",
+    "--display-bg": "#3e6c36",
+    "--bg-gradient": "#497042",
+    "animation": "leaves gently swaying with sun rays filtering"
+  },
+  "Winter Chill": {
+    "--calc-bg": "#a9d6e5",
+    "--text-color": "#07575b",
+    "--display-bg": "#b9e3e6",
+    "--bg-gradient": "#87c9d4",
+    "animation": "snowflakes drifting down slowly, faint sparkle"
+  },
+  "Golden Hour": {
+    "--calc-bg": "#ffcc80",
+    "--text-color": "#4a2c2a",
+    "--display-bg": "#ffdca7",
+    "--bg-gradient": "#fcd68a",
+    "animation": "warm sunlight radiating with gentle flickering"
+  },
+  "Mystic Forest": {
+    "--calc-bg": "#4a3f55",
+    "--text-color": "#c5b9cf",
+    "--display-bg": "#6a5980",
+    "--bg-gradient": "#735d87",
+    "animation": "soft mist drifting with occasional glowing orbs"
+  },
+  "Urban Night": {
+    "--calc-bg": "#2a2e43",
+    "--text-color": "#aab2bd",
+    "--display-bg": "#3d405b",
+    "--bg-gradient": "#474a67",
+    "animation": "flickering neon lights and subtle raindrops"
+  },
+  "Tropical Paradise": {
+    "--calc-bg": "#38a3a5",
+    "--text-color": "#f0f3bd",
+    "--display-bg": "#52b69a",
+    "--bg-gradient": "#68dcb6",
+    "animation": "palm leaves swaying and birds flying by"
+  },
+  "Retro Vibes": {
+    "--calc-bg": "#ff9a8d",
+    "--text-color": "#312c32",
+    "--display-bg": "#ffc4a3",
+    "--bg-gradient": "#ffd2a6",
+    "animation": "geometric shapes pulsating with slight glitch effect"
+  },
+  "Cosmic Dream": {
+    "--calc-bg": "#10002b",
+    "--text-color": "#eee6f2",
+    "--display-bg": "#240046",
+    "--bg-gradient": "#3c096c",
+    "animation": "rotating planets and shimmering stars"
+  },
+  "Autumn Leaves": {
+    "--calc-bg": "#a5592d",
+    "--text-color": "#f3d8b0",
+    "--display-bg": "#c17e37",
+    "--bg-gradient": "#bb8a44",
+    "animation": "falling colored leaves and soft wind"
+  },
+  "Neon Lights": {
+    "--calc-bg": "#1a1a2e",
+    "--text-color": "#e94560",
+    "--display-bg": "#16213e",
+    "--bg-gradient": "#0f3460",
+    "animation": "pulsing neon lines and faint glow"
+  },
+  "Soft Pastels": {
+    "--calc-bg": "#f7d1cd",
+    "--text-color": "#59494b",
+    "--display-bg": "#f9e1db",
+    "--bg-gradient": "#faefe6",
+    "animation": "slow floating particles with a slight blur"
+  },
+  "Desert Mirage": {
+    "--calc-bg": "#d9ba88",
+    "--text-color": "#5a4b3e",
+    "--display-bg": "#ccaa6c",
+    "--bg-gradient": "#ddb183",
+    "animation": "shimmering heat waves and drifting sand particles"
+  },
+  "Cherry Blossom": {
+    "--calc-bg": "#fadadd",
+    "--text-color": "#5d3a42",
+    "--display-bg": "#f8cbd0",
+    "--bg-gradient": "#f6d1d5",
+    "animation": "falling cherry petals with sparkling highlights"
+  },
+  "Steel Blue": {
+    "--calc-bg": "#3a506b",
+    "--text-color": "#f0f4ef",
+    "--display-bg": "#5bc0be",
+    "--bg-gradient": "#6fffe9",
+    "animation": "tiny metallic particles moving softly"
+  },
+  "Enchanted Garden": {
+    "--calc-bg": "#385e0f",
+    "--text-color": "#deeec4",
+    "--display-bg": "#4c7a11",
+    "--bg-gradient": "#6cbb14",
+    "animation": "fluttering butterflies and subtle light beams"
+  },
+  "Celestial Glow": {
+    "--calc-bg": "#191919",
+    "--text-color": "#fefefe",
+    "--display-bg": "#292929",
+    "--bg-gradient": "#3a3a3a",
+    "animation": "glowing stars drifting slowly"
+  },
+  "Silver Mist": {
+    "--calc-bg": "#b0bec5",
+    "--text-color": "#263238",
+    "--display-bg": "#cfd8dc",
+    "--bg-gradient": "#eceff1",
+    "animation": "misting fog rolling horizontally"
+  },
+  "Ocean Breeze": {
+    "--calc-bg": "#4ca1af",
+    "--text-color": "#f0f8ff",
+    "--display-bg": "#90cea1",
+    "--bg-gradient": "#b2dedc",
+    "animation": "gentle wave ripples and floating bubbles"
+  },
+  "Coral Reef": {
+    "--calc-bg": "#ff6f61",
+    "--text-color": "#fff2f0",
+    "--display-bg": "#ff9984",
+    "--bg-gradient": "#ffab91",
+    "animation": "colorful fishes swimming and light refracting"
+  },
+  "Spring Meadow": {
+    "--calc-bg": "#a2d5ab",
+    "--text-color": "#3a5a40",
+    "--display-bg": "#b3e6a0",
+    "--bg-gradient": "#c9f0c1",
+    "animation": "blossoming flowers and buzzing bees"
+  },
+  "Midnight Violet": {
+    "--calc-bg": "#3a1f5d",
+    "--text-color": "#e6d0f1",
+    "--display-bg": "#5b3677",
+    "--bg-gradient": "#7a5299",
+    "animation": "slow drifting violet clouds and twinkling stars"
+  },
+  "Amber Glow": {
+    "--calc-bg": "#ffbf00",
+    "--text-color": "#5e4200",
+    "--display-bg": "#ffd24c",
+    "--bg-gradient": "#ffdb4c",
+    "animation": "pulsing amber light with floating dust particles"
+  },
+  "Glacial Blue": {
+    "--calc-bg": "#c1dadb",
+    "--text-color": "#0d3b66",
+    "--display-bg": "#acc9ca",
+    "--bg-gradient": "#a1c4c9",
+    "animation": "icy crystal patterns gently shifting"
+  },
+  "Velvet Rouge": {
+    "--calc-bg": "#6e003f",
+    "--text-color": "#f4c2c2",
+    "--display-bg": "#8a003d",
+    "--bg-gradient": "#9e005b",
+    "animation": "slow swirling velvet textures and glowing embers"
+  },
+  "Lemon Zest": {
+    "--calc-bg": "#fff44f",
+    "--text-color": "#6a6a00",
+    "--display-bg": "#fff98f",
+    "--bg-gradient": "#fffbad",
+    "animation": "zesty lemon slices floating and sparkling"
+  },
+  "Cobalt Rush": {
+    "--calc-bg": "#0047ab",
+    "--text-color": "#e6f0fa",
+    "--display-bg": "#0059c6",
+    "--bg-gradient": "#0074d9",
+    "animation": "moving cobalt waves and subtle highlights"
+  },
+  "Amber Sands": {
+    "--calc-bg": "#f4a261",
+    "--text-color": "#593d00",
+    "--display-bg": "#f7b27e",
+    "--bg-gradient": "#f9c28c",
+    "animation": "shifting grainy sand textures and drifting particles"
+  },
+  "Emerald Twilight": {
+    "--calc-bg": "#055a45",
+    "--text-color": "#d4f1f4",
+    "--display-bg": "#076e54",
+    "--bg-gradient": "#09845b",
+    "animation": "twilight mist rolling over emerald leaves"
+  },
+  "Peach Blossom": {
+    "--calc-bg": "#ffd1ba",
+    "--text-color": "#603f39",
+    "--display-bg": "#fcd5b4",
+    "--bg-gradient": "#feddca",
+    "animation": "fluttering peach petals with soft glow"
+  },
+  "Steel Shadow": {
+    "--calc-bg": "#2f4f4f",
+    "--text-color": "#cad2c5",
+    "--display-bg": "#386868",
+    "--bg-gradient": "#497876",
+    "animation": "slow-moving mist with metallic glints"
+  },
+  "Sunlit Amber": {
+    "--calc-bg": "#ffbb00",
+    "--text-color": "#573d00",
+    "--display-bg": "#ffcc33",
+    "--bg-gradient": "#ffd633",
+    "animation": "radiating sun beams with dust particles"
+  },
+  "Plum Ice": {
+    "--calc-bg": "#580f41",
+    "--text-color": "#f2d9e6",
+    "--display-bg": "#6b1a54",
+    "--bg-gradient": "#792361",
+    "animation": "icy shards floating with subtle shimmer"
+  },
+  "Ocean Foam": {
+    "--calc-bg": "#6ccff6",
+    "--text-color": "#003459",
+    "--display-bg": "#80d1fc",
+    "--bg-gradient": "#a0d7ff",
+    "animation": "foam bubbles drifting and dispersing"
+  },
+  "Golden Prairie": {
+    "--calc-bg": "#c9ac6d",
+    "--text-color": "#49392f",
+    "--display-bg": "#dbba7a",
+    "--bg-gradient": "#e3c67c",
+    "animation": "grass blades swaying and gentle sunlight flicker"
+  },
+  "Lavender Mist": {
+    "--calc-bg": "#c3b1e1",
+    "--text-color": "#392f5a",
+    "--display-bg": "#d5c6f0",
+    "--bg-gradient": "#dfd1f7",
+    "animation": "soft mist rolling with lavender scent trails"
+  },
+  "Maple Shade": {
+    "--calc-bg": "#a75d3b",
+    "--text-color": "#f0d2af",
+    "--display-bg": "#bc7a53",
+    "--bg-gradient": "#c68961",
+    "animation": "maple leaves falling with subtle flicker"
+  },
+  "Icy Eclipse": {
+    "--calc-bg": "#283044",
+    "--text-color": "#d6dee9",
+    "--display-bg": "#3b4451",
+    "--bg-gradient": "#434f5d",
+    "animation": "slow moon shadow moving over icy textures"
+  },
+  "Amber Firefly": {
+    "--calc-bg": "#ff9600",
+    "--text-color": "#4a2900",
+    "--display-bg": "#ffaa33",
+    "--bg-gradient": "#ffb64d",
+    "animation": "fireflies flickering in amber light"
+  },
+  "Sapphire Sky": {
+    "--calc-bg": "#154360",
+    "--text-color": "#cdf0f7",
+    "--display-bg": "#1c5773",
+    "--bg-gradient": "#247394",
+    "animation": "slow drifting clouds with twinkling stars"
+  },
+  "Coral Sunset": {
+    "--calc-bg": "#ff7660",
+    "--text-color": "#432a21",
+    "--display-bg": "#ff8e77",
+    "--bg-gradient": "#ff9a8d",
+    "animation": "gliding coral clouds with fading sun rays"
+  },
+  "Olive Grove": {
+    "--calc-bg": "#66733d",
+    "--text-color": "#e6e9c4",
+    "--display-bg": "#7d8b4f",
+    "--bg-gradient": "#899962",
+    "animation": "leaves rustling gently in the wind"
+  },
+  "Twilight Bloom": {
+    "--calc-bg": "#2a1c38",
+    "--text-color": "#d1cde6",
+    "--display-bg": "#3b2a4a",
+    "--bg-gradient": "#4a3b5a",
+    "animation": "faint glowing flowers opening slowly"
+  },
+  "Dawn Coral": {
+    "--calc-bg": "#ff9f80",
+    "--text-color": "#542c21",
+    "--display-bg": "#ffb395",
+    "--bg-gradient": "#ffc1ab",
+    "animation": "rising sun rays and floating light particles"
+  },
+  "Copper Glow": {
+    "--calc-bg": "#a45b38",
+    "--text-color": "#fff3e6",
+    "--display-bg": "#b07150",
+    "--bg-gradient": "#b77a5b",
+    "animation": "glowing ember sparks drifting slowly"
+  },
+  "Mint Breeze": {
+    "--calc-bg": "#a8d5ba",
+    "--text-color": "#2f4a3a",
+    "--display-bg": "#bbdecf",
+    "--bg-gradient": "#c9e6dd",
+    "animation": "fresh mint leaves fluttering lightly"
+  },
+  "Crimson Veil": {
+    "--calc-bg": "#7f1d1d",
+    "--text-color": "#f0dede",
+    "--display-bg": "#961f1f",
+    "--bg-gradient": "#b02726",
+    "animation": "flowing crimson ribbons with light glints"
+  },
+  "Azure Drift": {
+    "--calc-bg": "#3a86ff",
+    "--text-color": "#eaf6ff",
+    "--display-bg": "#5aa0ff",
+    "--bg-gradient": "#7db3ff",
+    "animation": "smooth drifting clouds over clear sky"
+  },
+  "Amber Twilight": {
+    "--calc-bg": "#ffbb33",
+    "--text-color": "#5a3b00",
+    "--display-bg": "#ffc54d",
+    "--bg-gradient": "#ffd564",
+    "animation": "slow pulsing twilight glow"
+  },
+  "Olive Mist": {
+    "--calc-bg": "#708238",
+    "--text-color": "#eaefce",
+    "--display-bg": "#7f933e",
+    "--bg-gradient": "#8aa444",
+    "animation": "dancing mist over olive branches"
+  },
+  "Cerulean Pulse": {
+    "--calc-bg": "#007ba7",
+    "--text-color": "#d5e6f2",
+    "--display-bg": "#1494c7",
+    "--bg-gradient": "#2ca9e1",
+    "animation": "pulsing water ripples with light streaks"
+  },
+  "Peach Mirage": {
+    "--calc-bg": "#ffcbb3",
+    "--text-color": "#5a3c2e",
+    "--display-bg": "#fed4b3",
+    "--bg-gradient": "#fedcbf",
+    "animation": "floating mirage waves with shimmer effect"
+  },
+  "Dusty Rose": {
+    "--calc-bg": "#c48793",
+    "--text-color": "#3c2228",
+    "--display-bg": "#cf919e",
+    "--bg-gradient": "#d595a9",
+    "animation": "soft drifting rose petals"
+  },
+  "Sage Glow": {
+    "--calc-bg": "#9caf88",
+    "--text-color": "#303c2f",
+    "--display-bg": "#acc197",
+    "--bg-gradient": "#bbcca3",
+    "animation": "gentle glowing sage leaves with sparkle"
+  },
+  "Slate Harbor": {
+    "--calc-bg": "#536878",
+    "--text-color": "#e0e8f0",
+    "--display-bg": "#688ea3",
+    "--bg-gradient": "#7aaeba",
+    "animation": "slow harbor waves and drifting mist"
+  },
+  "Sunset Orchid": {
+    "--calc-bg": "#d991ad",
+    "--text-color": "#3a1f29",
+    "--display-bg": "#dd9dbd",
+    "--bg-gradient": "#e6adc8",
+    "animation": "orchid petals floating on warm breeze"
+  },
+  "Frosted Plum": {
+    "--calc-bg": "#5d4a66",
+    "--text-color": "#d0c8da",
+    "--display-bg": "#705b7b",
+    "--bg-gradient": "#8b7495",
+    "animation": "frost crystals slowly forming and fading"
+  },
+  "Amber Horizon": {
+    "--calc-bg": "#d78400",
+    "--text-color": "#4a3200",
+    "--display-bg": "#df9400",
+    "--bg-gradient": "#eaa800",
+    "animation": "golden horizon light expanding and contracting"
+  },
+  "Winter Sage": {
+    "--calc-bg": "#8ca398",
+    "--text-color": "#1f2623",
+    "--display-bg": "#9db0a8",
+    "--bg-gradient": "#afc0b6",
+    "animation": "slow drifting snow flurries with soft glow"
+  },
+  "Cocoa Dust": {
+    "--calc-bg": "#7f5d4e",
+    "--text-color": "#efe3d6",
+    "--display-bg": "#947063",
+    "--bg-gradient": "#ac7f6d",
+    "animation": "floating cocoa dust particles"
+  },
+  "Cerise Burst": {
+    "--calc-bg": "#da2c43",
+    "--text-color": "#fbe6e7",
+    "--display-bg": "#e63946",
+    "--bg-gradient": "#ef5350",
+    "animation": "bursting cerise sparks"
+  },
+  "Lagoon Mist": {
+    "--calc-bg": "#3e8e7e",
+    "--text-color": "#ddf1ec",
+    "--display-bg": "#46a091",
+    "--bg-gradient": "#4fb7a5",
+    "animation": "mist rolling over lagoon water"
+  },
+  "Copper Ember": {
+    "--calc-bg": "#b3541e",
+    "--text-color": "#f5dfd3",
+    "--display-bg": "#c46829",
+    "--bg-gradient": "#d47336",
+    "animation": "embers glowing and fading softly"
+  },
+  "Blush Petal": {
+    "--calc-bg": "#f1b1b1",
+    "--text-color": "#5a2e2e",
+    "--display-bg": "#f5c1c1",
+    "--bg-gradient": "#f9d1d1",
+    "animation": "soft petals falling and disappearing"
+  },
+  "Aztec Gold": {
+    "--calc-bg": "#c49102",
+    "--text-color": "#3b2f01",
+    "--display-bg": "#d49f13",
+    "--bg-gradient": "#ddb81f",
+    "animation": "golden waves shimmering slowly"
+  },
+  "Ocean Drift": {
+    "--calc-bg": "#1d3557",
+    "--text-color": "#f1faee",
+    "--display-bg": "#274060",
+    "--bg-gradient": "#2a4d69",
+    "animation": "slow ocean currents flowing with light glints"
+  },
+  "Periwinkle Fade": {
+    "--calc-bg": "#b7c6f1",
+    "--text-color": "#2c2f4a",
+    "--display-bg": "#c5d3f8",
+    "--bg-gradient": "#d3dff9",
+    "animation": "soft fading periwinkle waves"
+  },
+  "Dusky Rose": {
+    "--calc-bg": "#915f63",
+    "--text-color": "#f2e4e4",
+    "--display-bg": "#a57377",
+    "--bg-gradient": "#b6898d",
+    "animation": "gentle rose haze floating"
+  },
+  "Sapphire Glow": {
+    "--calc-bg": "#084c61",
+    "--text-color": "#d7e9f7",
+    "--display-bg": "#0a6171",
+    "--bg-gradient": "#0b7384",
+    "animation": "glowing sapphire particles drifting"
+  },
+  "Golden Maple": {
+    "--calc-bg": "#dca94b",
+    "--text-color": "#482c02",
+    "--display-bg": "#e2b65a",
+    "--bg-gradient": "#e9c163",
+    "animation": "slow falling maple leaves glowing in gold"
+  },
+  "Thunderstorm": {
+    "--calc-bg": "#323232",
+    "--text-color": "#d8d8d8",
+    "--display-bg": "#474747",
+    "--bg-gradient": "#5e5e5e",
+    "animation": "lightning flashes and drifting rain"
+  },
+  "Beryl Breeze": {
+    "--calc-bg": "#92c2a2",
+    "--text-color": "#204238",
+    "--display-bg": "#a3d2b1",
+    "--bg-gradient": "#b9e6c2",
+    "animation": "fresh breezes flickering leaves"
+  },
+  "Scarlet Fuse": {
+    "--calc-bg": "#a7226e",
+    "--text-color": "#f1d4d4",
+    "--display-bg": "#b5247d",
+    "--bg-gradient": "#c6348d",
+    "animation": "flickering scarlet sparks"
+  },
+  "Cloudy Quartz": {
+    "--calc-bg": "#d6d5d3",
+    "--text-color": "#484944",
+    "--display-bg": "#dedddb",
+    "--bg-gradient": "#e6e6e4",
+    "animation": "slow floating quartz cloud shapes"
+  },
+  "Emerald Tide": {
+    "--calc-bg": "#004d40",
+    "--text-color": "#d8f3dc",
+    "--display-bg": "#005a45",
+    "--bg-gradient": "#006a50",
+    "animation": "slow tide waves with emerald tint"
+  },
+  "Molten Chocolate": {
+    "--calc-bg": "#4c2f27",
+    "--text-color": "#e9d9d6",
+    "--display-bg": "#5f3a31",
+    "--bg-gradient": "#6f463d",
+    "animation": "molten chocolate waves shimmering"
+  },
+  "Magenta Mist": {
+    "--calc-bg": "#aa197d",
+    "--text-color": "#fbe9f1",
+    "--display-bg": "#bb2091",
+    "--bg-gradient": "#cc2a9f",
+    "animation": "slow mist drift with magenta tones"
+  },
+  "Slate Sky": {
+    "--calc-bg": "#657786",
+    "--text-color": "#e2e8f0",
+    "--display-bg": "#7a8ca3",
+    "--bg-gradient": "#8e9eb6",
+    "animation": "moving clouds with soft shadows"
+  },
+  "Copper Sunset": {
+    "--calc-bg": "#b35c00",
+    "--text-color": "#fbf1d0",
+    "--display-bg": "#c26900",
+    "--bg-gradient": "#cd7400",
+    "animation": "glowing sunset rays with dust particles"
+  },
+  "Frosted Cherry": {
+    "--calc-bg": "#d7888b",
+    "--text-color": "#331f21",
+    "--display-bg": "#e19a9e",
+    "--bg-gradient": "#eaabab",
+    "animation": "frosty cherry blossoms sparkling"
+  },
+  "Pine Grove": {
+    "--calc-bg": "#355e3b",
+    "--text-color": "#d8eadf",
+    "--display-bg": "#416945",
+    "--bg-gradient": "#527a55",
+    "animation": "soft wind ruffling pine needles"
+  },
+  "Saffron Light": {
+    "--calc-bg": "#f4c542",
+    "--text-color": "#5b3e00",
+    "--display-bg": "#f6d056",
+    "--bg-gradient": "#f8d96a",
+    "animation": "radiant saffron beams moving gently"
+  },
+  "Berry Swirl": {
+    "--calc-bg": "#7b3f61",
+    "--text-color": "#f1e5e8",
+    "--display-bg": "#8e4b71",
+    "--bg-gradient": "#9f5b82",
+    "animation": "swirling berry trails fading softly"
+  },
+  "Moss Velvet": {
+    "--calc-bg": "#607335",
+    "--text-color": "#e8f3d7",
+    "--display-bg": "#6f823f",
+    "--bg-gradient": "#83964f",
+    "animation": "velvet moss textures gently shifting"
+  },
+  "Carmine Glow": {
+    "--calc-bg": "#af3030",
+    "--text-color": "#fbe4e4",
+    "--display-bg": "#be3f3f",
+    "--bg-gradient": "#ce4d4d",
+    "animation": "glowing carmine spots pulsing"
+  },
+  "Ocean Breeze": {
+    "--calc-bg": "#4ca1af",
+    "--text-color": "#f0f8ff",
+    "--display-bg": "#68b9bb",
+    "--bg-gradient": "#8fced2",
+    "animation": "bubbles rising with soft breeze sounds"
+  },
+  "Amethyst Dream": {
+    "--calc-bg": "#9b59b6",
+    "--text-color": "#f3e8f9",
+    "--display-bg": "#ab66c1",
+    "--bg-gradient": "#bc78cc",
+    "animation": "floating amethyst crystals glowing"
+  },
+  "Sandstone Glow": {
+    "--calc-bg": "#c4a484",
+    "--text-color": "#5e4b3d",
+    "--display-bg": "#d0b49c",
+    "--bg-gradient": "#ddbea9",
+    "animation": "warm sandstone dust drifting upward"
+  },
+  "Lily Pond": {
+    "--calc-bg": "#61892f",
+    "--text-color": "#e9f3c4",
+    "--display-bg": "#6e9843",
+    "--bg-gradient": "#81af51",
+    "animation": "floating lily pads with bubbles"
+  },
+  "Velvet Twilight": {
+    "--calc-bg": "#3c234b",
+    "--text-color": "#dbcee6",
+    "--display-bg": "#4b2f5c",
+    "--bg-gradient": "#5f3e75",
+    "animation": "velvet textures fading with stars twinkling"
+  },
+  "Citrus Zing": {
+    "--calc-bg": "#f9e79f",
+    "--text-color": "#6c5b00",
+    "--display-bg": "#fbeaa1",
+    "--bg-gradient": "#fdf1a3",
+    "animation": "sparkling citrus bubbles rising"
+  },
+  "Blue Lagoon": {
+    "--calc-bg": "#1ca9c9",
+    "--text-color": "#ecf9fc",
+    "--display-bg": "#33b9d9",
+    "--bg-gradient": "#55cfea",
+    "animation": "water waves and sun rays flickering"
+  },
+  "Marigold Glow": {
+    "--calc-bg": "#ffb703",
+    "--text-color": "#5a3b00",
+    "--display-bg": "#ffc30b",
+    "--bg-gradient": "#ffd52f",
+    "animation": "glowing marigold petals floating"
+  },
+  "Foggy Twilight": {
+    "--calc-bg": "#3b3f63",
+    "--text-color": "#dadce6",
+    "--display-bg": "#484c77",
+    "--bg-gradient": "#555a8c",
+    "animation": "rolling fog with twinkling stars"
+  },
+  "Cherry Velvet": {
+    "--calc-bg": "#a7324d",
+    "--text-color": "#f6d8dc",
+    "--display-bg": "#bd3e62",
+    "--bg-gradient": "#ce4e71",
+    "animation": "velvet textures with drifting cherry petals"
+  },
+  "Silver Spruce": {
+    "--calc-bg": "#708090",
+    "--text-color": "#dfe6e9",
+    "--display-bg": "#8394a1",
+    "--bg-gradient": "#90a2ad",
+    "animation": "soft pine needles swaying in gentle breeze"
+  },
+  "Golden Ember": {
+    "--calc-bg": "#fa9e0d",
+    "--text-color": "#5e4200",
+    "--display-bg": "#fbaa1e",
+    "--bg-gradient": "#fcb133",
+    "animation": "glowing ember sparks floating upward"
+  },
+  "Lavender Haze": {
+    "--calc-bg": "#b497bd",
+    "--text-color": "#3d2a44",
+    "--display-bg": "#c1a4c3",
+    "--bg-gradient": "#cbb0cb",
+    "animation": "slow drifting haze with lavender particles"
+  },
+  "Sunset Coral": {
+    "--calc-bg": "#ff7e72",
+    "--text-color": "#5e3a36",
+    "--display-bg": "#ff8c82",
+    "--bg-gradient": "#ff9b92",
+    "animation": "coral clouds drifting with soft glow"
+  },
+  "Sage Sage": {
+    "--calc-bg": "#a1b29f",
+    "--text-color": "#3a4535",
+    "--display-bg": "#b3c1ae",
+    "--bg-gradient": "#c5d3bb",
+    "animation": "whispering sage leaves sparkling"
+  },
+  "Stormy Coast": {
+    "--calc-bg": "#4a5568",
+    "--text-color": "#dee2e6",
+    "--display-bg": "#5a6676",
+    "--bg-gradient": "#66788a",
+    "animation": "rolling waves with lightning flashes"
+  },
+  "Crimson Path": {
+    "--calc-bg": "#b3352e",
+    "--text-color": "#f7d2d1",
+    "--display-bg": "#c8413b",
+    "--bg-gradient": "#da4c48",
+    "animation": "glowing crimson embers drifting"
+  },
+  "Mint Whisper": {
+    "--calc-bg": "#9cd1a5",
+    "--text-color": "#204420",
+    "--display-bg": "#acd9ae",
+    "--bg-gradient": "#bce2b7",
+    "animation": "mint leaves gently swaying"
+  },
+  "Celeste Glow": {
+    "--calc-bg": "#679b9b",
+    "--text-color": "#eef7f7",
+    "--display-bg": "#7db3b3",
+    "--bg-gradient": "#93c8c8",
+    "animation": "soft glowing orbs drifting"
+  },
+  "Honeycomb": {
+    "--calc-bg": "#d8b45e",
+    "--text-color": "#5a4200",
+    "--display-bg": "#dcb763",
+    "--bg-gradient": "#e4ce7a",
+    "animation": "honeycomb pattern shimmer"
+  },
+  "Peony Blush": {
+    "--calc-bg": "#eec9c2",
+    "--text-color": "#462b2e",
+    "--display-bg": "#f1d1cb",
+    "--bg-gradient": "#f5dad6",
+    "animation": "floating peony petals"
+  },
+  "Ocean Drift": {
+    "--calc-bg": "#41778d",
+    "--text-color": "#e2f2f7",
+    "--display-bg": "#5193a3",
+    "--bg-gradient": "#62abb5",
+    "animation": "slow ocean waves with small bubbles"
+  },
+  "Copper Canyon": {
+    "--calc-bg": "#9d5c3f",
+    "--text-color": "#f3e7e5",
+    "--display-bg": "#a97156",
+    "--bg-gradient": "#bb896a",
+    "animation": "floating dust motes catching light"
+  },
+  "Rosewood": {
+    "--calc-bg": "#682c2c",
+    "--text-color": "#f2e0e0",
+    "--display-bg": "#7c3542",
+    "--bg-gradient": "#8c4550",
+    "animation": "slowly swirling rosewood grain"
+  },
+  "Sapphire Mist": {
+    "--calc-bg": "#154360",
+    "--text-color": "#dbf0fc",
+    "--display-bg": "#1c5773",
+    "--bg-gradient": "#247394",
+    "animation": "mist drifting over deep sapphire water"
+  },
+  "Golden Dawn": {
+    "--calc-bg": "#ffc857",
+    "--text-color": "#5f3c00",
+    "--display-bg": "#ffcea4",
+    "--bg-gradient": "#ffdb99",
+    "animation": "rising dawn light flickering"
+  }
+  // Continue in similar style with unique colors and anim descriptions up to theme 150
+};
+
+    const applyTheme = (themeName) => {
+      const theme = themes[themeName];
+      if (!theme) return;
+      for (let key in theme) document.documentElement.style.setProperty(key, theme[key]);
+      localStorage.setItem('calc-theme', themeName);
+    };
+
+    const populateThemeList = () => {
+      themeList.innerHTML = "";
+      Object.keys(themes).forEach(theme => {
+        const item = document.createElement("div");
+        item.innerText = theme;
+        item.onclick = () => {
+          applyTheme(theme);
+          themeList.classList.remove("active");
+        };
+        themeList.appendChild(item);
+      });
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      populateThemeList();
+      const saved = localStorage.getItem('calc-theme');
+      if (saved && themes[saved]) applyTheme(saved);
+    });
+
+    themeToggle.onclick = () => {
+      themeList.classList.toggle("active");
+    };
+
+    const evaluateLive = () => {
+      try {
+        const exp = display.innerText;
+        tooltip.innerText = /\/0(?!\d)/.test(exp) ? "Error: Pembagian 0 invalid" : "= " + eval(exp);
+      } catch { tooltip.innerText = ""; }
+    };
+
+    const evaluate = () => {
+      try {
+        const exp = display.innerText;
+        if (/\/0(?!\d)/.test(exp)) return display.innerText = "Error: Pembagian 0 invalid";
+        const result = eval(exp);
+        if (!isFinite(result)) throw Error();
+        display.innerText = result;
+        history.push(exp);
+        historyIndex = history.length - 1;
+      } catch { display.innerText = "Error"; }
+    };
+
+    document.querySelectorAll("button").forEach(btn => {
+      btn.onclick = () => {
+        const val = btn.innerText.trim();
+        if (btn.classList.contains("clear")) display.innerText = "";
+        else if (btn.classList.contains("backspace")) display.innerText = display.innerText.slice(0, -1);
+        else if (btn.classList.contains("equal")) evaluate();
+        else if (btn.classList.contains("number") || btn.classList.contains("operator")) display.innerText += val, evaluateLive();
+        else if (btn.classList.contains("undo")) {
+          if (historyIndex > 0) display.innerText = history[--historyIndex];
+        } else if (btn.classList.contains("redo")) {
+          if (historyIndex < history.length - 1) display.innerText = history[++historyIndex];
+        } else if (btn.classList.contains("copy")) {
+          navigator.clipboard.writeText(display.innerText).then(() => {
+            tooltip.innerText = "Hasil disalin ke clipboard!";
+            setTimeout(() => tooltip.innerText = "", 1500);
+          });
+        } else if (btn.classList.contains("save")) {
+          localStorage.setItem("savedCalc", display.innerText);
+          tooltip.innerText = "Perhitungan disimpan!";
+          setTimeout(() => tooltip.innerText = "", 1500);
+        } else if (btn.classList.contains("load")) {
+          const saved = localStorage.getItem("savedCalc") || "";
+          display.innerText = saved;
+          evaluateLive();
+        } else if (btn.classList.contains("voice")) {
+          if ('webkitSpeechRecognition' in window) {
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'id-ID';
+            recognition.onresult = event => {
+              const transcript = event.results[0][0].transcript;
+              display.innerText += transcript;
+              evaluateLive();
+            };
+            recognition.start();
+          } else {
+            tooltip.innerText = "Browser tidak mendukung Voice Input.";
+            setTimeout(() => tooltip.innerText = "", 2000);
+          }
+        }
+      };
+    });
+  </script>
+  </body>
+</html>
